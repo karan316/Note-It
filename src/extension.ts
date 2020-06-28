@@ -14,7 +14,7 @@ export function activate({ subscriptions }: vscode.ExtensionContext) {
         vscode.commands.registerCommand(showNoteCommand, async () => {
             const editor: any = vscode.window.activeTextEditor;
             console.log(
-                "wubaaaaaaaaaaa" + editor.document.getText(editor.selection)
+                "Editor Selection: " + editor.document.getText(editor.selection)
             );
             code = await editor.document.getText(editor.selection);
             // code = getSelectedLines();
