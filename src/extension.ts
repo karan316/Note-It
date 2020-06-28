@@ -1,32 +1,26 @@
 import * as vscode from "vscode";
-import { TextEncoder } from "util";
-const { path } = require("path");
+import * as fs from "fs";
+import { posix } from "path";
 
 let statusBarItem: vscode.StatusBarItem;
-let inputBox: vscode.InputBox;
-let code: string | undefined;
-let comments: string;
+let code: any;
+let comments: any;
 export function activate({ subscriptions }: vscode.ExtensionContext) {
     const showNoteCommand = "note-it.showNoteIt";
     const openInputBoxCommand = "note-it.openInputBox";
-    subscriptions.push(
-        vscode.commands.registerCommand(showNoteCommand, () => {
-            code = getSelectedLines(vscode.window.activeTextEditor);
-        })
-    );
 
     subscriptions.push(
-        vscode.commands.registerCommand(openInputBoxCommand, () => {
-            inputBox = vscode.window.createInputBox();
-            inputBox.placeholder = "Add your comments for this code";
-            inputBox.title = "Comment for this code snippet";
-            inputBox.buttons;
-            inputBox.show();
-            let comments = inputBox.value;
-            comments += "\n";
-            let fileInput = new TextEncoder().encode(comments + code);
-            let uri = vscode.Uri.file(__dirname + "notes.txt");
-            vscode.workspace.fs.writeFile(uri, fileInput);
+        vscode.commands.registerCommand(showNoteCommand, () => {
+            code = getSelectedLines();
+            console.log("Code: " + code);
+
+            function getSelectedLines(): string | undefined {
+                let text: string | undefined;
+                const editor: any = vscode.window.activeTextEditor;
+                text = editor.document.getText(editor.selection);
+                console.log("Text :" + text);
+                return text;
+            }
         })
     );
 
@@ -39,31 +33,74 @@ export function activate({ subscriptions }: vscode.ExtensionContext) {
     subscriptions.push(statusBarItem);
 
     subscriptions.push(
-        vscode.window.onDidChangeActiveTextEditor(updateStatusBarItem)
+        vscode.commands.registerCommand(openInputBoxCommand, async () => {
+            comments = await vscode.window.showInputBox({
+                placeHolder: "Add your comments",
+            });
+            console.log(comments + code);
+            if (!vscode.workspace.workspaceFolders) {
+                return vscode.window.showInformationMessage(
+                    "No folder or workspace opened"
+                );
+            }
+
+            try {
+                if (comments) {
+                    const folderUri = vscode.workspace.workspaceFolders[0].uri;
+                    const fileUri = folderUri.with({
+                        path: posix.join(folderUri.path, "Notes.txt"),
+                    });
+
+                    // console.log(fs.existsSync(__dirname + "Notes.txt"));
+                    // if the file exists read the data from the existing file
+                    if (fs.existsSync(__dirname + "Notes.txt")) {
+                        const readData = await vscode.workspace.fs.readFile(
+                            fileUri
+                        );
+                        // file input of comment + code + existing file data
+                        const fileInput = Buffer.from(
+                            readData + comments + code,
+                            "utf-8"
+                        );
+
+                        await vscode.workspace.fs.writeFile(fileUri, fileInput);
+                    } else {
+                        const fileInput = Buffer.from(comments + code, "utf-8");
+
+                        await vscode.workspace.fs.writeFile(fileUri, fileInput);
+                    }
+                } else {
+                    return vscode.window.showInformationMessage(
+                        "Add a comment please!"
+                    );
+                }
+            } catch (error) {
+                console.log(error);
+            }
+        })
     );
     subscriptions.push(
         vscode.window.onDidChangeTextEditorSelection(updateStatusBarItem)
     );
 
     updateStatusBarItem();
-}
+    function updateStatusBarItem(): void {
+        const text = getSelectedLines();
+        if (text) {
+            statusBarItem.text = "Make a Note";
+            statusBarItem.show();
+        } else {
+            statusBarItem.hide();
+        }
 
-function updateStatusBarItem(): void {
-    const text = getSelectedLines(vscode.window.activeTextEditor);
-    if (text) {
-        statusBarItem.text = "Make a Note";
-        statusBarItem.show();
-    } else {
-        statusBarItem.hide();
+        function getSelectedLines(): string | undefined {
+            let text: string | undefined;
+            const editor: any = vscode.window.activeTextEditor;
+            text = editor.document.getText(editor.selection);
+            console.log("Text :" + text);
+            return text;
+        }
     }
-}
-
-function getSelectedLines(
-    editor: vscode.TextEditor | undefined
-): string | undefined {
-    let text: string | undefined;
-    text = editor?.selections.toString();
-    return text;
 }
 
 export function deactivate() {}
