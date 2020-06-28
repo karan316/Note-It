@@ -1,16 +1,41 @@
 import * as vscode from "vscode";
+import { TextEncoder } from "util";
+const { path } = require("path");
 
 let statusBarItem: vscode.StatusBarItem;
-
+let inputBox: vscode.InputBox;
+let code: string | undefined;
+let comments: string;
 export function activate({ subscriptions }: vscode.ExtensionContext) {
-    const commandId = "sample.showNoteIt";
-    subscriptions.push(vscode.commands.registerCommand(commandId, () => {}));
+    const showNoteCommand = "note-it.showNoteIt";
+    const openInputBoxCommand = "note-it.openInputBox";
+    subscriptions.push(
+        vscode.commands.registerCommand(showNoteCommand, () => {
+            code = getSelectedLines(vscode.window.activeTextEditor);
+        })
+    );
+
+    subscriptions.push(
+        vscode.commands.registerCommand(openInputBoxCommand, () => {
+            inputBox = vscode.window.createInputBox();
+            inputBox.placeholder = "Add your comments for this code";
+            inputBox.title = "Comment for this code snippet";
+            inputBox.buttons;
+            inputBox.show();
+            let comments = inputBox.value;
+            comments += "\n";
+            let fileInput = new TextEncoder().encode(comments + code);
+            let uri = vscode.Uri.file(__dirname + "notes.txt");
+            vscode.workspace.fs.writeFile(uri, fileInput);
+        })
+    );
 
     statusBarItem = vscode.window.createStatusBarItem(
         vscode.StatusBarAlignment.Right,
         100
     );
-    statusBarItem.command = commandId;
+
+    statusBarItem.command = openInputBoxCommand;
     subscriptions.push(statusBarItem);
 
     subscriptions.push(
@@ -20,7 +45,6 @@ export function activate({ subscriptions }: vscode.ExtensionContext) {
         vscode.window.onDidChangeTextEditorSelection(updateStatusBarItem)
     );
 
-    // update status bar item once at start
     updateStatusBarItem();
 }
 
@@ -42,5 +66,4 @@ function getSelectedLines(
     return text;
 }
 
-// this method is called when your extension is deactivated
 export function deactivate() {}
