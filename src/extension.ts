@@ -87,7 +87,7 @@ export function activate({ subscriptions }: vscode.ExtensionContext) {
     function updateStatusBarItem(): void {
         const text = getSelectedLines();
         if (text) {
-            statusBarItem.text = "Make a Note";
+            statusBarItem.text = "Note it";
             statusBarItem.show();
         } else {
             statusBarItem.hide();
