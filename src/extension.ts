@@ -5,22 +5,27 @@ import { posix } from "path";
 let statusBarItem: vscode.StatusBarItem;
 let code: any;
 let comments: any;
+let fileInput: any;
 export function activate({ subscriptions }: vscode.ExtensionContext) {
     const showNoteCommand = "note-it.showNoteIt";
     const openInputBoxCommand = "note-it.openInputBox";
 
     subscriptions.push(
-        vscode.commands.registerCommand(showNoteCommand, () => {
-            code = getSelectedLines();
+        vscode.commands.registerCommand(showNoteCommand, async () => {
+            const editor: any = vscode.window.activeTextEditor;
+            console.log(
+                "wubaaaaaaaaaaa" + editor.document.getText(editor.selection)
+            );
+            code = await editor.document.getText(editor.selection);
+            // code = getSelectedLines();
             console.log("Code: " + code);
+            fileInput = Buffer.from(code, "utf-8");
 
-            function getSelectedLines(): string | undefined {
-                let text: string | undefined;
-                const editor: any = vscode.window.activeTextEditor;
-                text = editor.document.getText(editor.selection);
-                console.log("Text :" + text);
-                return text;
-            }
+            // function getSelectedLines(): string | undefined {
+            //     let text: string | undefined;
+            //     console.log("Text :" + text);
+            //     return text;
+            // }
         })
     );
 
@@ -58,14 +63,14 @@ export function activate({ subscriptions }: vscode.ExtensionContext) {
                             fileUri
                         );
                         // file input of comment + code + existing file data
-                        const fileInput = Buffer.from(
-                            readData + comments + code,
+                        fileInput = Buffer.from(
+                            fileInput + readData + comments,
                             "utf-8"
                         );
 
                         await vscode.workspace.fs.writeFile(fileUri, fileInput);
                     } else {
-                        const fileInput = Buffer.from(comments + code, "utf-8");
+                        fileInput = Buffer.from(fileInput + comments, "utf-8");
 
                         await vscode.workspace.fs.writeFile(fileUri, fileInput);
                     }
@@ -92,14 +97,13 @@ export function activate({ subscriptions }: vscode.ExtensionContext) {
         } else {
             statusBarItem.hide();
         }
-
-        function getSelectedLines(): string | undefined {
-            let text: string | undefined;
-            const editor: any = vscode.window.activeTextEditor;
-            text = editor.document.getText(editor.selection);
-            console.log("Text :" + text);
-            return text;
-        }
+    }
+    function getSelectedLines(): string | undefined {
+        let text: string | undefined;
+        const editor: any = vscode.window.activeTextEditor;
+        text = editor.document.getText(editor.selection);
+        console.log("Text :" + text);
+        return text;
     }
 }
 
